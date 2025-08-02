@@ -1,35 +1,53 @@
 'use client';
 
-import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar, Badge } from '@heroui/react';
-import { useAccount, useConnect, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
-import { useEffect, useState } from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/solid';
+import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Badge } from '@heroui/react';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { ChevronDownIcon, WalletIcon } from '@heroicons/react/24/solid';
 
 export const WalletConnect = () => {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConnect = (connector: any) => {
     connect({ connector });
-    setIsOpen(false);
   };
 
   const handleDisconnect = () => {
     disconnect();
-    setIsOpen(false);
   };
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  if (!mounted) {
+    return (
+      <Button
+        color='primary'
+        className='bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors duration-200 ease-out'
+        disabled
+      >
+        Connecting...
+      </Button>
+    );
+  }
+
   if (isConnected && address) {
     return (
-      <Dropdown isOpen={isOpen} onOpenChange={setIsOpen}>
+      <Dropdown>
         <DropdownTrigger>
-          <Button variant='bordered' endContent={<ChevronDownIcon className='w-4 h-4' />}>
+          <Button
+            variant='bordered'
+            startContent={<WalletIcon className='w-4 h-4' />}
+            endContent={<ChevronDownIcon className='w-4 h-4' />}
+          >
             {formatAddress(address)}
           </Button>
         </DropdownTrigger>
@@ -46,7 +64,7 @@ export const WalletConnect = () => {
   }
 
   return (
-    <Dropdown isOpen={isOpen} onOpenChange={setIsOpen}>
+    <Dropdown>
       <DropdownTrigger>
         <Button
           color='primary'
