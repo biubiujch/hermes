@@ -24,7 +24,7 @@ export const TopNavBar = () => {
               className='text-xl font-semibold text-gray-900 cursor-pointer' 
               onClick={() => redirect('/dashboard')}
             >
-              Trade Bot
+              Hermes
             </div>
             
             {/* Navigation Menu */}
