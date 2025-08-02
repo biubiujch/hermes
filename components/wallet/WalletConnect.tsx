@@ -1,8 +1,9 @@
 'use client';
 
-import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar } from '@heroui/react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Avatar, Badge } from '@heroui/react';
+import { useAccount, useConnect, useDisconnect, useEnsAvatar, useEnsName } from 'wagmi';
 import { useEffect, useState } from 'react';
+import { ChevronDownIcon } from '@heroicons/react/24/solid';
 
 export const WalletConnect = () => {
   const { address, isConnected } = useAccount();
@@ -28,11 +29,7 @@ export const WalletConnect = () => {
     return (
       <Dropdown isOpen={isOpen} onOpenChange={setIsOpen}>
         <DropdownTrigger>
-          <Button
-            variant='bordered'
-            className='bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors duration-200 ease-out'
-          >
-            <Avatar name={formatAddress(address)} size='sm' className='mr-2' />
+          <Button variant='bordered' endContent={<ChevronDownIcon className='w-4 h-4' />}>
             {formatAddress(address)}
           </Button>
         </DropdownTrigger>
