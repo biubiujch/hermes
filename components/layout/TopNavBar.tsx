@@ -11,6 +11,7 @@ export const TopNavBar = () => {
     { label: 'Dashboard', href: '/dashboard' },
     { label: 'Trade', href: '/trade' },
     { label: 'Strategy', href: '/strategy' },
+    { label: 'Asset Pool', href: '/asset-pool' },
     { label: 'Settings', href: '/settings' }
   ];
 
