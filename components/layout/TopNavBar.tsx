@@ -12,6 +12,7 @@ export const TopNavBar = () => {
     { label: 'Trade', href: '/trade' },
     { label: 'Strategy', href: '/strategy' },
     { label: 'Asset Pool', href: '/asset-pool' },
+    { label: 'Pricing', href: '/pricing' },
     { label: 'Settings', href: '/settings' }
   ];
 
@@ -25,7 +26,7 @@ export const TopNavBar = () => {
               className='text-xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors duration-200 ease-out'
               onClick={() => router.push('/')}
             >
-              Hermes
+              Hermora
             </div>
 
             {/* Navigation Menu */}

@@ -50,7 +50,7 @@ export default function Home() {
             >
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Hermes
+                  Hermora
                 </span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
@@ -104,7 +104,7 @@ export default function Home() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Hermes?
+              Why Choose Hermora?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               We provide the most advanced personal trading bot technology to give you an edge in the cryptocurrency market
@@ -149,7 +149,7 @@ export default function Home() {
               Ready to Start Your Trading Journey?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join Hermes and experience the next-generation personal trading bot for decentralized exchanges
+              Join Hermora and experience the next-generation personal trading bot for decentralized exchanges
             </p>
             <Link href="/dashboard">
               <Button 
