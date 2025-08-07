@@ -1,375 +1,280 @@
-'use client';
+import { useState, useCallback } from 'react';
+import { 
+  VaultConfig, 
+  UserPools, 
+  Pool, 
+  CreatePoolRequest,
+  DeletePoolRequest,
+  MergePoolsRequest,
+  DepositRequest,
+  WithdrawRequest,
+  TokenApprovalStatus,
+  NonceResponse,
+  DomainSeparatorResponse,
+  SignatureVerificationRequest
+} from '@/lib/account/vault';
 
-import { useState, useEffect, useRef } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
-import { VaultPool, VaultConfig, ApprovalStatus, TransactionData, executeVaultTransaction } from '../lib/account/vault';
-
-export function useVault() {
-  const { address, isConnected } = useAccount();
-  const { data: walletClient } = useWalletClient();
-  const [pools, setPools] = useState<VaultPool[]>([]);
-  const [vaultConfig, setVaultConfig] = useState<VaultConfig | null>(null);
-  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | null>(null);
+export const useVault = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [networkId, setNetworkId] = useState(31337);
 
-  // 防重复请求的ref
-  const requestRefs = useRef<{
-    fetchUserPools: boolean;
-    fetchVaultConfig: boolean;
-    fetchApprovalStatus: boolean;
-    createPool: boolean;
-    deletePool: boolean;
-    mergePools: boolean;
-    depositFunds: boolean;
-    withdrawFunds: boolean;
-  }>({
-    fetchUserPools: false,
-    fetchVaultConfig: false,
-    fetchApprovalStatus: false,
-    createPool: false,
-    deletePool: false,
-    mergePools: false,
-    depositFunds: false,
-    withdrawFunds: false
-  });
-
-  useEffect(() => {
-    setMounted(true);
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
-  // Helper function to execute transaction with wagmi
-  const executeTransaction = async (transactionData: TransactionData) => {
-    return await executeVaultTransaction(walletClient, transactionData);
+  // Helper function to handle API responses
+  const handleApiResponse = async (response: Response) => {
+    const data = await response.json();
+    if (data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.error || 'API request failed');
+    }
   };
 
-  const fetchUserPools = async () => {
-    if (!address || requestRefs.current.fetchUserPools) return;
-
-    requestRefs.current.fetchUserPools = true;
+  // Get Vault Configuration
+  const getVaultConfig = useCallback(async (): Promise<VaultConfig | null> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/vault/pools?walletAddress=${address}&networkId=${networkId}`);
-      const result = await response.json();
-
-      if (result.success) {
-        setPools(result.data.pools);
-      } else {
-        throw new Error(result.error || 'Failed to fetch user pools');
-      }
+      const response = await fetch('/api/vault/config');
+      const config = await handleApiResponse(response);
+      return config;
     } catch (err: any) {
       setError(err.message);
-      console.error('Failed to fetch user pools:', err);
+      return null;
     } finally {
       setLoading(false);
-      requestRefs.current.fetchUserPools = false;
     }
-  };
+  }, []);
 
-  const fetchVaultConfig = async () => {
-    if (requestRefs.current.fetchVaultConfig) return;
-
-    requestRefs.current.fetchVaultConfig = true;
+  // Get User Pools
+  const getUserPools = useCallback(async (walletAddress: string): Promise<UserPools | null> => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch('/api/vault/config');
-      const result = await response.json();
-
-      if (result.success) {
-        setVaultConfig(result.data);
-      } else {
-        console.error('Failed to fetch vault config:', result.error);
-      }
+      const response = await fetch(`/api/vault/pools/user/${encodeURIComponent(walletAddress)}`);
+      const pools = await handleApiResponse(response);
+      return pools;
     } catch (err: any) {
-      console.error('Failed to fetch vault config:', err);
+      setError(err.message);
+      return null;
     } finally {
-      requestRefs.current.fetchVaultConfig = false;
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchApprovalStatus = async (tokenAddress?: string) => {
-    if (!address || requestRefs.current.fetchApprovalStatus) return;
-
-    requestRefs.current.fetchApprovalStatus = true;
+  // Get Pool Details
+  const getPoolDetails = useCallback(async (poolId: number): Promise<Pool | null> => {
+    setLoading(true);
+    setError(null);
     try {
-      const url = `/api/vault/approval-status?walletAddress=${address}&networkId=${networkId}${tokenAddress ? `&tokenAddress=${tokenAddress}` : ''}`;
-      const response = await fetch(url);
-      const result = await response.json();
-
-      if (result.success) {
-        setApprovalStatus(result.data);
-      } else {
-        console.error('Failed to fetch approval status:', result.error);
-      }
+      const response = await fetch(`/api/vault/pools/${poolId}`);
+      const pool = await handleApiResponse(response);
+      return pool;
     } catch (err: any) {
-      console.error('Failed to fetch approval status:', err);
+      setError(err.message);
+      return null;
     } finally {
-      requestRefs.current.fetchApprovalStatus = false;
+      setLoading(false);
     }
-  };
+  }, []);
 
-  // New transaction preparation methods
-  const prepareCreatePool = async (initialAmount: string, tokenAddress?: string) => {
-    if (!address || requestRefs.current.createPool) throw new Error('Request in progress');
-
-    requestRefs.current.createPool = true;
+  // Create Pool
+  const createPool = useCallback(async (request: CreatePoolRequest): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/vault/pools', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          walletAddress: address,
-          initialAmount,
-          tokenAddress,
-          networkId
-        })
+        body: JSON.stringify(request),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data as TransactionData;
-      } else {
-        throw new Error(result.error || 'Failed to prepare create pool transaction');
-      }
+      const result = await handleApiResponse(response);
+      return result !== null;
     } catch (err: any) {
       setError(err.message);
-      throw err;
+      return false;
     } finally {
       setLoading(false);
-      requestRefs.current.createPool = false;
     }
-  };
+  }, []);
 
-  const createPool = async (initialAmount: string, tokenAddress?: string) => {
-    const transactionData = await prepareCreatePool(initialAmount, tokenAddress);
-    const transactionHash = await executeTransaction(transactionData);
-
-    // Refresh pools after successful creation
-    await fetchUserPools();
-    return { transactionHash };
-  };
-
-  const prepareDeletePool = async (poolId: number) => {
-    if (!address || requestRefs.current.deletePool) throw new Error('Request in progress');
-
-    requestRefs.current.deletePool = true;
+  // Delete Pool
+  const deletePool = useCallback(async (poolId: number, request: DeletePoolRequest): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`/api/vault/pools/${poolId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          walletAddress: address,
-          networkId
-        })
+        body: JSON.stringify(request),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data as TransactionData;
-      } else {
-        throw new Error(result.error || 'Failed to prepare delete pool transaction');
-      }
+      const result = await handleApiResponse(response);
+      return result !== null;
     } catch (err: any) {
       setError(err.message);
-      throw err;
+      return false;
     } finally {
       setLoading(false);
-      requestRefs.current.deletePool = false;
     }
-  };
+  }, []);
 
-  const deletePool = async (poolId: number) => {
-    const transactionData = await prepareDeletePool(poolId);
-    const transactionHash = await executeTransaction(transactionData);
-
-    // Refresh pools after successful deletion
-    await fetchUserPools();
-    return { transactionHash };
-  };
-
-  const prepareMergePools = async (targetPoolId: number, sourcePoolId: number) => {
-    if (!address || requestRefs.current.mergePools) throw new Error('Request in progress');
-
-    requestRefs.current.mergePools = true;
+  // Merge Pools
+  const mergePools = useCallback(async (request: MergePoolsRequest): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/vault/pools/merge', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          walletAddress: address,
-          targetPoolId,
-          sourcePoolId,
-          networkId
-        })
+        body: JSON.stringify(request),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data as TransactionData;
-      } else {
-        throw new Error(result.error || 'Failed to prepare merge pools transaction');
-      }
+      const result = await handleApiResponse(response);
+      return result !== null;
     } catch (err: any) {
       setError(err.message);
-      throw err;
+      return false;
     } finally {
       setLoading(false);
-      requestRefs.current.mergePools = false;
     }
-  };
+  }, []);
 
-  const mergePools = async (targetPoolId: number, sourcePoolId: number) => {
-    const transactionData = await prepareMergePools(targetPoolId, sourcePoolId);
-    const transactionHash = await executeTransaction(transactionData);
-
-    // Refresh pools after successful merge
-    await fetchUserPools();
-    return { transactionHash };
-  };
-
-  const prepareDepositFunds = async (poolId: number, amount: string, tokenAddress?: string) => {
-    if (!address || requestRefs.current.depositFunds) throw new Error('Request in progress');
-
-    requestRefs.current.depositFunds = true;
+  // Deposit Funds
+  const depositFunds = useCallback(async (poolId: number, request: DepositRequest): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`/api/vault/pools/${poolId}/deposit`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          walletAddress: address,
-          amount,
-          tokenAddress,
-          networkId
-        })
+        body: JSON.stringify(request),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data as TransactionData;
-      } else {
-        throw new Error(result.error || 'Failed to prepare deposit transaction');
-      }
+      const result = await handleApiResponse(response);
+      return result !== null;
     } catch (err: any) {
       setError(err.message);
-      throw err;
+      return false;
     } finally {
       setLoading(false);
-      requestRefs.current.depositFunds = false;
     }
-  };
+  }, []);
 
-  const depositFunds = async (poolId: number, amount: string, tokenAddress?: string) => {
-    const transactionData = await prepareDepositFunds(poolId, amount, tokenAddress);
-    const transactionHash = await executeTransaction(transactionData);
-
-    // Refresh pools after successful deposit
-    await fetchUserPools();
-    return { transactionHash };
-  };
-
-  const prepareWithdrawFunds = async (poolId: number, amount: string, tokenAddress?: string) => {
-    if (!address || requestRefs.current.withdrawFunds) throw new Error('Request in progress');
-
-    requestRefs.current.withdrawFunds = true;
+  // Withdraw Funds
+  const withdrawFunds = useCallback(async (poolId: number, request: WithdrawRequest): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`/api/vault/pools/${poolId}/withdraw`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          walletAddress: address,
-          amount,
-          tokenAddress,
-          networkId
-        })
+        body: JSON.stringify(request),
       });
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data as TransactionData;
-      } else {
-        throw new Error(result.error || 'Failed to prepare withdraw transaction');
-      }
+      const result = await handleApiResponse(response);
+      return result !== null;
     } catch (err: any) {
       setError(err.message);
-      throw err;
+      return false;
     } finally {
       setLoading(false);
-      requestRefs.current.withdrawFunds = false;
     }
-  };
+  }, []);
 
-  const withdrawFunds = async (poolId: number, amount: string, tokenAddress?: string) => {
-    const transactionData = await prepareWithdrawFunds(poolId, amount, tokenAddress);
-    const transactionHash = await executeTransaction(transactionData);
-
-    // Refresh pools after successful withdrawal
-    await fetchUserPools();
-    return { transactionHash };
-  };
-
-  const refreshAll = async () => {
-    // 并行执行，但每个函数内部都有防重复逻辑
-    await Promise.all([fetchUserPools(), fetchVaultConfig(), fetchApprovalStatus()]);
-  };
-
-  useEffect(() => {
-    if (mounted && isConnected && address) {
-      refreshAll();
+  // Get Token Approval Status
+  const getTokenApprovalStatus = useCallback(async (walletAddress: string, tokenAddress: string): Promise<TokenApprovalStatus | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/vault/token/approval/${encodeURIComponent(walletAddress)}/${encodeURIComponent(tokenAddress)}`);
+      const status = await handleApiResponse(response);
+      return status;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, [mounted, isConnected, address, networkId]);
+  }, []);
+
+  // Get User Nonce
+  const getUserNonce = useCallback(async (walletAddress: string): Promise<NonceResponse | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/vault/nonce/${encodeURIComponent(walletAddress)}`);
+      const nonce = await handleApiResponse(response);
+      return nonce;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Get Domain Separator
+  const getDomainSeparator = useCallback(async (): Promise<DomainSeparatorResponse | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/vault/domain-separator');
+      const domainSeparator = await handleApiResponse(response);
+      return domainSeparator;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Verify Signature
+  const verifySignature = useCallback(async (request: SignatureVerificationRequest): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/vault/verify-signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+      const result = await handleApiResponse(response);
+      return result?.isValid || false;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
-    pools,
-    vaultConfig,
-    approvalStatus,
     loading,
     error,
-    mounted,
-    networkId,
-    setNetworkId,
-    // Transaction execution methods (with signing)
+    clearError,
+    getVaultConfig,
+    getUserPools,
+    getPoolDetails,
     createPool,
     deletePool,
     mergePools,
     depositFunds,
     withdrawFunds,
-    // Transaction preparation methods (without signing)
-    prepareCreatePool,
-    prepareDeletePool,
-    prepareMergePools,
-    prepareDepositFunds,
-    prepareWithdrawFunds,
-    // Utility methods
-    fetchUserPools,
-    fetchVaultConfig,
-    fetchApprovalStatus,
-    refreshAll
+    getTokenApprovalStatus,
+    getUserNonce,
+    getDomainSeparator,
+    verifySignature
   };
-}
+}; 

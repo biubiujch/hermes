@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VaultApiService } from '@/lib/account/vault';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ walletAddress: string }> }
+) {
   try {
-    const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('walletAddress');
-    const tokenAddress = searchParams.get('tokenAddress');
-    const networkId = searchParams.get('networkId') || '31337';
+    const { walletAddress } = await params;
 
     if (!walletAddress) {
       return NextResponse.json(
@@ -19,15 +19,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const status = await VaultApiService.getApprovalStatus(walletAddress, tokenAddress || undefined, parseInt(networkId));
+    const nonceResponse = await VaultApiService.getUserNonce(walletAddress);
 
     return NextResponse.json({
       success: true,
-      data: status,
+      data: nonceResponse,
       timestamp: Date.now()
     });
   } catch (error: any) {
-    console.error('Get approval status error:', error.message);
+    console.error('Backend service error:', error.message);
 
     return NextResponse.json(
       {

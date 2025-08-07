@@ -3,14 +3,13 @@ import { VaultApiService } from '@/lib/account/vault';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { poolId: string } }
+  { params }: { params: Promise<{ poolId: string }> }
 ) {
   try {
-    const poolId = parseInt(params.poolId);
-    const { searchParams } = new URL(request.url);
-    const networkId = searchParams.get('networkId') || '31337';
-    
-    if (isNaN(poolId)) {
+    const { poolId } = await params;
+    const poolIdNum = parseInt(poolId, 10);
+
+    if (isNaN(poolIdNum)) {
       return NextResponse.json(
         {
           success: false,
@@ -21,15 +20,15 @@ export async function GET(
       );
     }
 
-    const pool = await VaultApiService.getPoolDetails(poolId, parseInt(networkId));
+    const poolDetails = await VaultApiService.getPoolDetails(poolIdNum);
 
     return NextResponse.json({
       success: true,
-      data: pool,
+      data: poolDetails,
       timestamp: Date.now()
     });
   } catch (error: any) {
-    console.error('Get pool details error:', error.message);
+    console.error('Backend service error:', error.message);
 
     return NextResponse.json(
       {
@@ -44,14 +43,13 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { poolId: string } }
+  { params }: { params: Promise<{ poolId: string }> }
 ) {
   try {
-    const poolId = parseInt(params.poolId);
-    const body = await request.json();
-    const { walletAddress, networkId = 31337 } = body;
+    const { poolId } = await params;
+    const poolIdNum = parseInt(poolId, 10);
 
-    if (isNaN(poolId)) {
+    if (isNaN(poolIdNum)) {
       return NextResponse.json(
         {
           success: false,
@@ -62,26 +60,34 @@ export async function DELETE(
       );
     }
 
-    if (!walletAddress) {
+    const body = await request.json();
+    const { walletAddress, nonce, deadline, signature } = body;
+
+    if (!walletAddress || nonce === undefined || !deadline || !signature) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Wallet address is required',
+          error: 'Missing required fields: walletAddress, nonce, deadline, signature',
           timestamp: Date.now()
         },
         { status: 400 }
       );
     }
 
-    const transactionData = await VaultApiService.prepareDeletePool(poolId, walletAddress, networkId);
+    const result = await VaultApiService.deletePool(poolIdNum, {
+      walletAddress,
+      nonce,
+      deadline,
+      signature
+    });
 
     return NextResponse.json({
       success: true,
-      data: transactionData,
+      data: result,
       timestamp: Date.now()
     });
   } catch (error: any) {
-    console.error('Prepare delete pool error:', error.message);
+    console.error('Backend service error:', error.message);
 
     return NextResponse.json(
       {

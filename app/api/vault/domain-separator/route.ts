@@ -3,11 +3,11 @@ import { VaultApiService } from '@/lib/account/vault';
 
 export async function GET(request: NextRequest) {
   try {
-    const config = await VaultApiService.getVaultConfig();
+    const domainSeparator = await VaultApiService.getDomainSeparator();
 
     return NextResponse.json({
       success: true,
-      data: config,
+      data: domainSeparator,
       timestamp: Date.now()
     });
   } catch (error: any) {

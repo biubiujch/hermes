@@ -1,34 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VaultApiService } from '@/lib/account/vault';
 
-export async function PUT(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, targetPoolId, sourcePoolId, nonce, deadline, signature } = body;
+    const { walletAddress, message, signature } = body;
 
-    if (!walletAddress || !targetPoolId || !sourcePoolId || nonce === undefined || !deadline || !signature) {
+    if (!walletAddress || !message || !signature) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: walletAddress, targetPoolId, sourcePoolId, nonce, deadline, signature',
+          error: 'Missing required fields: walletAddress, message, signature',
           timestamp: Date.now()
         },
         { status: 400 }
       );
     }
 
-    const result = await VaultApiService.mergePools({
+    const verificationResult = await VaultApiService.verifySignature({
       walletAddress,
-      targetPoolId,
-      sourcePoolId,
-      nonce,
-      deadline,
+      message,
       signature
     });
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: verificationResult,
       timestamp: Date.now()
     });
   } catch (error: any) {

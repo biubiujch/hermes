@@ -1,22 +1,17 @@
 'use client';
 
-import { Card, CardBody, CardHeader, Chip, Tabs, Tab } from '@heroui/react';
-import { useAccount } from 'wagmi';
-import { useChainIdSafe } from '../../hooks/useChainIdSafe';
+import { Card, CardBody, CardHeader, Chip, Tabs, Tab, Spinner } from '@heroui/react';
+import { useAccount, useChainId } from 'wagmi';
 import { WalletIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 import Account from './Account';
 import Vault from './Vault';
 
 export default function Settings() {
   const { address, isConnected } = useAccount();
-  const { chainId, mounted: chainIdMounted } = useChainIdSafe();
-
+  const chainId = useChainId();
   const isLocalChain = chainId === 31337; // Hardhat local chain
 
   // Don't render until client-side mounting is complete
-  if (!chainIdMounted) {
-    return null;
-  }
 
   if (!isConnected) {
     return (
@@ -34,14 +29,14 @@ export default function Settings() {
 
   const tabs = [
     {
-      id: "account",
-      label: "Account",
+      id: 'account',
+      label: 'Account',
       icon: WalletIcon,
       content: <Account />
     },
     {
-      id: "vault",
-      label: "Vault",
+      id: 'vault',
+      label: 'Vault',
       icon: BanknotesIcon,
       content: <Vault />
     }
@@ -58,11 +53,7 @@ export default function Settings() {
                 <h1 className='text-2xl font-bold'>Account Settings</h1>
                 <p className='text-gray-600 mt-1'>Manage your wallet and account information</p>
               </div>
-              <Chip 
-                color={isLocalChain ? 'warning' : 'success'} 
-                variant='flat'
-                size='sm'
-              >
+              <Chip color={isLocalChain ? 'warning' : 'success'} variant='flat' size='sm'>
                 {isLocalChain ? 'Local Testnet' : 'Mainnet'}
               </Chip>
             </div>
@@ -76,14 +67,17 @@ export default function Settings() {
         </Card>
 
         {/* Settings Tabs */}
-        <Tabs aria-label="Settings tabs" items={tabs} className="w-full">
+        <Tabs aria-label='Settings tabs' items={tabs} className='w-full'>
           {(item) => (
-            <Tab key={item.id} title={
-              <div className="flex items-center space-x-2">
-                <item.icon className="w-4 h-4" />
-                <span>{item.label}</span>
-              </div>
-            }>
+            <Tab
+              key={item.id}
+              title={
+                <div className='flex items-center space-x-2'>
+                  <item.icon className='w-4 h-4' />
+                  <span>{item.label}</span>
+                </div>
+              }
+            >
               {item.content}
             </Tab>
           )}
