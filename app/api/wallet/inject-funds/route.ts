@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WalletApiService } from '../../../../lib/api/wallet';
+import { WalletApiService } from '@/lib/account/wallet';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!walletAddress || !amount) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Wallet address and amount are required',
           timestamp: Date.now()
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const success = await WalletApiService.injectFunds(walletAddress, amount);
-    
+
     return NextResponse.json({
       success: true,
       data: { success },
@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Inject funds error:', error.message);
-    
+
     // Return the actual error message from backend
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: error.message || 'Service temporarily unavailable',
         timestamp: Date.now()
@@ -38,4 +38,4 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   }
-} 
+}

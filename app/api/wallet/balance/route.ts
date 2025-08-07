@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WalletApiService } from '../../../../lib/api/wallet';
+import { WalletApiService } from '@/lib/account/wallet';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     if (!walletAddress) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Wallet address is required',
           timestamp: Date.now()
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const balance = await WalletApiService.getWalletBalance(walletAddress);
-    
+
     return NextResponse.json({
       success: true,
       data: { balances: balance },
@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Backend service error:', error.message);
-    
+
     // Return 200 status with error information instead of 503
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Service temporarily unavailable',
         timestamp: Date.now()
@@ -37,4 +37,4 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   }
-} 
+}

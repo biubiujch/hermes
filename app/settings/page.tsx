@@ -1,16 +1,17 @@
 'use client';
 
 import { Card, CardBody, CardHeader, Button, Input, Chip, Spinner, Divider, addToast } from '@heroui/react';
-import { useAccount, useChainId } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useState } from 'react';
 import { useWalletBalance } from '../../hooks/useWalletBalance';
+import { useChainIdSafe } from '../../hooks/useChainIdSafe';
 import { WalletIcon, CurrencyDollarIcon, ArrowDownTrayIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { formatTime } from '../../lib/utils/date';
 import { formatNumber, formatCurrency, formatETH } from '../../lib/utils/number';
 
 export default function Settings() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  const { chainId, mounted: chainIdMounted } = useChainIdSafe();
   const { balance, loading, lastUpdated, fetchBalance, injectFunds, mounted } = useWalletBalance();
   
   const [injectAmount, setInjectAmount] = useState('1000');
@@ -51,7 +52,7 @@ export default function Settings() {
   };
 
   // Don't render until client-side mounting is complete
-  if (!mounted) {
+  if (!mounted || !chainIdMounted) {
     return (
       <div className='container mx-auto px-4 py-8'>
         <div className='flex items-center justify-center py-12'>

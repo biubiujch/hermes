@@ -1,17 +1,18 @@
 'use client';
 
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Badge, Spinner } from '@heroui/react';
-import { useAccount, useConnect, useDisconnect, useSwitchChain, useChainId } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { ChevronDownIcon, WalletIcon, GlobeAltIcon } from '@heroicons/react/24/solid';
 import { useNetworks } from '../../hooks/useNetworks';
+import { useChainIdSafe } from '../../hooks/useChainIdSafe';
 
 export const WalletConnect = () => {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
-  const chainId = useChainId();
+  const { chainId, mounted: chainIdMounted } = useChainIdSafe();
   const { networks, loading: networksLoading, mounted: networksMounted } = useNetworks();
   const [mounted, setMounted] = useState(false);
 
@@ -45,7 +46,7 @@ export const WalletConnect = () => {
 
   const currentNetwork = getCurrentNetwork();
 
-  if (!mounted || !networksMounted) {
+  if (!mounted || !networksMounted || !chainIdMounted) {
     return (
       <Button
         color='primary'
