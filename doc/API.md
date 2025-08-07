@@ -2,7 +2,18 @@
 
 ## Server port:5500
 
+## Status Code Reference
 
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `422` - Validation Error
+- `500` - Internal Server Error
+- `501` - Not Implemented (e.g., fund injection API in production environment)
 
 ## Response Format
 
@@ -10,11 +21,11 @@ All API responses follow the following unified format:
 
 ```typescript
 interface ApiResponse<T = any> {
-  success: boolean;      // Whether the request was successful
-  data?: T;             // Response data
-  message?: string;     // Response message
-  error?: string;       // Error message
-  timestamp: number;    // Timestamp
+  success: boolean; // Whether the request was successful
+  data?: T; // Response data
+  message?: string; // Response message
+  error?: string; // Error message
+  timestamp: number; // Timestamp
 }
 ```
 
@@ -61,13 +72,14 @@ interface ApiResponse<T = any> {
 }
 ```
 
-
 ## Wallet Related APIs
 
 ### Get Application Configuration
+
 - **GET** `/api/wallet/config`
 - **Description**: Get application configuration information, including fee collector account, rates, etc.
 - **Response Example**:
+
 ```json
 {
   "success": true,
@@ -96,9 +108,11 @@ interface ApiResponse<T = any> {
 ```
 
 ### Get Available Networks
+
 - **GET** `/api/wallet/networks`
 - **Description**: Get list of supported blockchain networks
 - **Response Example**:
+
 ```json
 {
   "success": true,
@@ -170,6 +184,7 @@ interface ApiResponse<T = any> {
 ```
 
 ### Get Wallet Balance
+
 - **GET** `/api/wallet/balance`
 - **Description**: Get ETH and USDT balance for specified wallet address
 - **Query Parameters**:
@@ -179,6 +194,7 @@ interface ApiResponse<T = any> {
   GET /api/wallet/balance?walletAddress=0xe13B97DA8D53CD4456f215526635d0Db35CFB658
   ```
 - **Response Example**:
+
 ```json
 {
   "success": true,
@@ -191,7 +207,9 @@ interface ApiResponse<T = any> {
   }
 }
 ```
+
 - **Error Response Example**:
+
 ```json
 {
   "success": false,
@@ -201,16 +219,20 @@ interface ApiResponse<T = any> {
 ```
 
 ### Inject Funds to Wallet (Local Test Only)
+
 - **POST** `/api/wallet/inject-funds`
 - **Description**: Inject USDT funds to specified wallet (only for local test environment)
 - **Request Body**:
+
 ```json
 {
   "walletAddress": "0x...",
   "amount": "1000"
 }
 ```
+
 - **Response Example**:
+
 ```json
 {
   "success": false,
@@ -218,20 +240,6 @@ interface ApiResponse<T = any> {
   "note": "This API should be called from frontend with user wallet signature"
 }
 ```
+
 - **Note**: This API is disabled in production environment, only for local testing
 
-
-
-
-## Status Code Reference
-
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `409` - Conflict
-- `422` - Validation Error
-- `500` - Internal Server Error
-- `501` - Not Implemented (e.g., fund injection API in production environment)
