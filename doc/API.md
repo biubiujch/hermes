@@ -1,31 +1,44 @@
-# API Documentation
+# Hermora API Documentation
 
-## Server port:5500
+## Overview
 
-## Status Code Reference
+The Hermora API is built using a decorator pattern with unified response formats and error handling. It supports EIP-712 signature verification for secure blockchain transactions.
 
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `409` - Conflict
-- `422` - Validation Error
-- `500` - Internal Server Error
-- `501` - Not Implemented (e.g., fund injection API in production environment)
+## Architecture
+
+### Controller Hierarchy
+
+```
+BaseController (Base Controller)
+├── Request context management
+├── Response methods (success, error, paginated)
+├── Parameter extraction (getParam, getQueryParam, getBody)
+└── Error handling
+
+ContractController (Contract Controller Base)
+├── Inherits BaseController
+├── Provider and Signer management
+├── Contract instance creation
+└── Address validation
+
+Specific Controllers
+├── VaultController (inherits ContractController)
+├── WalletController (inherits ContractController)
+├── StrategyController (inherits ContractController)
+└── ExampleController (inherits BaseController)
+```
 
 ## Response Format
 
-All API responses follow the following unified format:
+All API responses follow this unified format:
 
 ```typescript
 interface ApiResponse<T = any> {
-  success: boolean; // Whether the request was successful
-  data?: T; // Response data
-  message?: string; // Response message
-  error?: string; // Error message
-  timestamp: number; // Timestamp
+  success: boolean;      // Whether the request was successful
+  data?: T;             // Response data
+  message?: string;     // Response message
+  error?: string;       // Error message
+  timestamp: number;    // Timestamp
 }
 ```
 
@@ -72,14 +85,56 @@ interface ApiResponse<T = any> {
 }
 ```
 
-## Wallet Related APIs
+## API Endpoints
 
-### Get Application Configuration
+### Example Controller (`/api/example`)
 
+#### Search Examples
+- **GET** `/api/example/search`
+- **Query Parameters**:
+  - `q` (required): Search keyword
+- **Response**: Array of matching examples
+
+#### Get All Examples
+- **GET** `/api/example`
+- **Query Parameters**:
+  - `page` (optional): Page number, default 1
+  - `limit` (optional): Items per page, default 10
+- **Response**: Paginated list of examples
+
+#### Get Example by ID
+- **GET** `/api/example/:id`
+- **Path Parameters**:
+  - `id`: Example ID
+- **Response**: Single example object
+
+#### Create Example
+- **POST** `/api/example`
+- **Request Body**:
+```json
+{
+  "name": "Example Name",
+  "description": "Example Description"
+}
+```
+
+#### Update Example
+- **PUT** `/api/example/:id`
+- **Path Parameters**:
+  - `id`: Example ID
+- **Request Body**: Same as create
+
+#### Delete Example
+- **DELETE** `/api/example/:id`
+- **Path Parameters**:
+  - `id`: Example ID
+
+### Wallet Controller (`/api/wallet`)
+
+#### Get Configuration
 - **GET** `/api/wallet/config`
-- **Description**: Get application configuration information, including fee collector account, rates, etc.
+- **Description**: Get application configuration including fee collector, rates, etc.
 - **Response Example**:
-
 ```json
 {
   "success": true,
@@ -99,107 +154,28 @@ interface ApiResponse<T = any> {
       "contracts": {
         "mockToken": "0x...",
         "vault": "0x...",
-        "membership": "0x..."
+        "strategyRegistry": "0x..."
       }
-    },
-    "note": "Configuration information for debugging and setup"
-  }
-}
-```
-
-### Get Available Networks
-
-- **GET** `/api/wallet/networks`
-- **Description**: Get list of supported blockchain networks
-- **Response Example**:
-
-```json
-{
-  "success": true,
-  "data": {
-    "networks": [
-      {
-        "id": 31337,
-        "name": "Hardhat Local",
-        "rpcUrl": "http://127.0.0.1:8545",
-        "chainId": "0x7A69",
-        "nativeCurrency": {
-          "name": "Ether",
-          "symbol": "ETH",
-          "decimals": 18
-        },
-        "blockExplorerUrls": [],
-        "isTestnet": true,
-        "isLocal": true
-      },
-      {
-        "id": 42161,
-        "name": "Arbitrum One",
-        "rpcUrl": "https://arb1.arbitrum.io/rpc",
-        "chainId": "0xA4B1",
-        "nativeCurrency": {
-          "name": "Ether",
-          "symbol": "ETH",
-          "decimals": 18
-        },
-        "blockExplorerUrls": ["https://arbiscan.io"],
-        "isTestnet": false,
-        "isLocal": false
-      },
-      {
-        "id": 43114,
-        "name": "Avalanche C-Chain",
-        "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
-        "chainId": "0xA86A",
-        "nativeCurrency": {
-          "name": "Avalanche",
-          "symbol": "AVAX",
-          "decimals": 18
-        },
-        "blockExplorerUrls": ["https://snowtrace.io"],
-        "isTestnet": false,
-        "isLocal": false
-      },
-      {
-        "id": 3636,
-        "name": "Botanix",
-        "rpcUrl": "https://rpc.btxtestchain.com",
-        "chainId": "0xE34",
-        "nativeCurrency": {
-          "name": "Bitcoin",
-          "symbol": "BTC",
-          "decimals": 18
-        },
-        "blockExplorerUrls": ["https://testnet.botanixscan.com"],
-        "isTestnet": true,
-        "isLocal": false
-      }
-    ],
-    "currentNetwork": {
-      "chainId": 31337,
-      "name": "Hardhat"
     }
   }
 }
 ```
 
-### Get Wallet Balance
+#### Get Supported Networks
+- **GET** `/api/wallet/networks`
+- **Description**: Get list of supported blockchain networks
+- **Response**: Array of network configurations with chain IDs, RPC URLs, etc.
 
+#### Get Wallet Balance
 - **GET** `/api/wallet/balance`
-- **Description**: Get ETH and USDT balance for specified wallet address
 - **Query Parameters**:
-  - `walletAddress` (required): Wallet address, must be a valid Ethereum address
-- **Request Example**:
-  ```
-  GET /api/wallet/balance?walletAddress=0xe13B97DA8D53CD4456f215526635d0Db35CFB658
-  ```
+  - `walletAddress` (required): Ethereum wallet address
 - **Response Example**:
-
 ```json
 {
   "success": true,
   "data": {
-    "walletAddress": "0xe13B97DA8D53CD4456f215526635d0Db35CFB658",
+    "walletAddress": "0x...",
     "balances": {
       "eth": "1.5",
       "usdt": "1000.0"
@@ -208,22 +184,10 @@ interface ApiResponse<T = any> {
 }
 ```
 
-- **Error Response Example**:
-
-```json
-{
-  "success": false,
-  "error": "Invalid wallet address",
-  "timestamp": 1703123456789
-}
-```
-
-### Inject Funds to Wallet (Local Test Only)
-
+#### Inject Test Funds
 - **POST** `/api/wallet/inject-funds`
-- **Description**: Inject USDT funds to specified wallet (only for local test environment)
+- **Description**: Inject USDT funds to wallet (local test only)
 - **Request Body**:
-
 ```json
 {
   "walletAddress": "0x...",
@@ -231,24 +195,11 @@ interface ApiResponse<T = any> {
 }
 ```
 
-- **Response Example**:
+### Vault Controller (`/api/vault`)
 
-```json
-{
-  "success": false,
-  "message": "Fund injection is only available in local test environment. In production, use frontend wallet connection.",
-  "note": "This API should be called from frontend with user wallet signature"
-}
-```
-
-- **Note**: This API is disabled in production environment, only for local testing
-
-
-## Vault (资金池) Related APIs
-
-### Get Vault Configuration
+#### Get Vault Configuration
 - **GET** `/api/vault/config`
-- **Description**: Get vault configuration information including max pools per user, fee rates, etc.
+- **Description**: Get vault configuration including max pools, fee rates, etc.
 - **Response Example**:
 ```json
 {
@@ -258,91 +209,41 @@ interface ApiResponse<T = any> {
     "minPoolBalance": "0.001",
     "feeRate": 5,
     "feeCollector": "0x...",
-    "supportedTokens": {
-      "mockToken": "0x...",
-      "isSupported": true
-    }
+    "vaultAddress": "0x...",
+    "mockTokenAddress": "0x..."
   }
 }
 ```
 
-### Get User Pools
+#### Get User Pools
 - **GET** `/api/vault/pools/user/:walletAddress`
-- **Description**: Get all pools owned by a specific wallet address
 - **Path Parameters**:
-  - `walletAddress` (required): Wallet address
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "walletAddress": "0x...",
-    "totalPools": 2,
-    "pools": [
-      {
-        "id": 1,
-        "owner": "0x...",
-        "totalBalance": "1.5",
-        "isActive": true,
-        "createdAt": 1703123456,
-        "lastActivityAt": 1703123456
-      }
-    ]
-  }
-}
-```
+  - `walletAddress`: Wallet address
+- **Response**: Array of user's pools
 
-### Get Pool Details
+#### Get Pool Details
 - **GET** `/api/vault/pools/:poolId`
-- **Description**: Get detailed information about a specific pool
 - **Path Parameters**:
   - `poolId`: Pool ID
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "owner": "0x...",
-    "totalBalance": "1.5",
-    "isActive": true,
-    "createdAt": 1703123456,
-    "lastActivityAt": 1703123456
-  }
-}
-```
+- **Response**: Single pool object
 
-### Create Pool
+#### Create Pool
 - **POST** `/api/vault/pools`
-- **Description**: Create a new pool with initial funds (requires signature verification)
+- **Description**: Create new pool with initial funds (requires EIP-712 signature)
 - **Request Body**:
 ```json
 {
   "walletAddress": "0x...",
   "initialAmount": "1.0",
-  "tokenAddress": "0x...", // Optional, defaults to ETH
+  "tokenAddress": "0x...",
   "nonce": 0,
   "deadline": 1234567890,
   "signature": "0x..."
 }
 ```
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "poolId": 1,
-    "walletAddress": "0x...",
-    "initialAmount": "1.0",
-    "transactionHash": "0x...",
-    "message": "Pool created successfully"
-  }
-}
-```
 
-### Delete Pool
+#### Delete Pool
 - **DELETE** `/api/vault/pools/:poolId`
-- **Description**: Delete a pool and withdraw all funds (requires signature verification)
 - **Path Parameters**:
   - `poolId`: Pool ID
 - **Request Body**:
@@ -354,22 +255,10 @@ interface ApiResponse<T = any> {
   "signature": "0x..."
 }
 ```
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "poolId": 1,
-    "walletAddress": "0x...",
-    "transactionHash": "0x...",
-    "message": "Pool deleted successfully"
-  }
-}
-```
 
-### Merge Pools
+#### Merge Pools
 - **PUT** `/api/vault/pools/merge`
-- **Description**: Merge two pools owned by the same user (requires signature verification)
+- **Description**: Merge two pools owned by same user
 - **Request Body**:
 ```json
 {
@@ -381,23 +270,9 @@ interface ApiResponse<T = any> {
   "signature": "0x..."
 }
 ```
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "targetPoolId": 1,
-    "sourcePoolId": 2,
-    "walletAddress": "0x...",
-    "transactionHash": "0x...",
-    "message": "Pools merged successfully"
-  }
-}
-```
 
-### Deposit Funds
+#### Deposit to Pool
 - **POST** `/api/vault/pools/:poolId/deposit`
-- **Description**: Deposit funds into a pool (requires signature verification)
 - **Path Parameters**:
   - `poolId`: Pool ID
 - **Request Body**:
@@ -405,113 +280,39 @@ interface ApiResponse<T = any> {
 {
   "walletAddress": "0x...",
   "amount": "0.5",
-  "tokenAddress": "0x...", // Optional, defaults to ETH
+  "tokenAddress": "0x...",
   "nonce": 3,
   "deadline": 1234567890,
   "signature": "0x..."
 }
 ```
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "poolId": 1,
-    "walletAddress": "0x...",
-    "amount": "0.5",
-    "tokenAddress": "0x0000000000000000000000000000000000000000",
-    "transactionHash": "0x...",
-    "message": "Deposit successful"
-  }
-}
-```
 
-### Withdraw Funds
+#### Withdraw from Pool
 - **POST** `/api/vault/pools/:poolId/withdraw`
-- **Description**: Withdraw funds from a pool with fee deduction (requires signature verification)
 - **Path Parameters**:
   - `poolId`: Pool ID
-- **Request Body**:
-```json
-{
-  "walletAddress": "0x...",
-  "amount": "0.5",
-  "tokenAddress": "0x...", // Optional, defaults to ETH
-  "nonce": 4,
-  "deadline": 1234567890,
-  "signature": "0x..."
-}
-```
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "poolId": 1,
-    "walletAddress": "0x...",
-    "amount": "0.5",
-    "tokenAddress": "0x0000000000000000000000000000000000000000",
-    "transactionHash": "0x...",
-    "message": "Withdrawal successful"
-  }
-}
-```
+- **Request Body**: Same as deposit
 
-### Get Token Approval Status
+#### Get Token Approval Status
 - **GET** `/api/vault/token/approval/:walletAddress/:tokenAddress`
-- **Description**: Check token approval status for vault operations
 - **Path Parameters**:
-  - `walletAddress` (required): Wallet address
-  - `tokenAddress` (required): Token address
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "walletAddress": "0x...",
-    "tokenAddress": "0x...",
-    "balance": "1000.0",
-    "allowance": "500.0",
-    "needsApproval": false
-  }
-}
-```
-- **Note**: `needsApproval` is `true` when `allowance` is 0, indicating that the vault contract needs approval to spend tokens on behalf of the user.
+  - `walletAddress`: Wallet address
+  - `tokenAddress`: Token address
+- **Response**: Balance, allowance, and approval status
 
-## Signature Verification APIs
-
-### Get User Nonce
+#### Get User Nonce
 - **GET** `/api/vault/nonce/:walletAddress`
-- **Description**: Get current nonce for a wallet address (used for signature verification)
 - **Path Parameters**:
-  - `walletAddress` (required): Wallet address
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "walletAddress": "0x...",
-    "nonce": 5
-  }
-}
-```
+  - `walletAddress`: Wallet address
+- **Response**: Current nonce for signature verification
 
-### Get Domain Separator
+#### Get Domain Separator
 - **GET** `/api/vault/domain-separator`
-- **Description**: Get EIP-712 domain separator for signature verification
-- **Response Example**:
-```json
-{
-  "success": true,
-  "data": {
-    "domainSeparator": "0x..."
-  }
-}
-```
+- **Response**: EIP-712 domain separator for vault operations
 
-### Verify Signature
+#### Verify Signature
 - **POST** `/api/vault/verify-signature`
-- **Description**: Verify a message signature
+- **Description**: Verify EIP-712 signature
 - **Request Body**:
 ```json
 {
@@ -520,34 +321,400 @@ interface ApiResponse<T = any> {
   "signature": "0x..."
 }
 ```
+
+### Strategy Controller (`/api/strategy`)
+
+#### Get Strategy Configuration
+- **GET** `/api/strategy/config`
+- **Description**: Get strategy system configuration
+- **Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "maxStrategiesPerUser": 50,
+    "nextStrategyId": 1,
+    "domainSeparator": "0x...",
+    "strategyRegistryAddress": "0x...",
+    "eip712Domain": {
+      "name": "Hermora Strategy",
+      "version": "1",
+      "chainId": 31337,
+      "verifyingContract": "0x..."
+    }
+  }
+}
+```
+
+#### Get User Strategies
+- **GET** `/api/strategy/user/:walletAddress`
+- **Path Parameters**:
+  - `walletAddress`: Wallet address
+- **Response**: Array of user's strategies with parameters
+
+#### Get Strategy Details
+- **GET** `/api/strategy/:strategyId`
+- **Path Parameters**:
+  - `strategyId`: Strategy ID
+- **Response**: Single strategy with parameters
+
+#### Compute Strategy Hash
+- **POST** `/api/strategy/compute-hash`
+- **Description**: Get computed hash for strategy parameters (for frontend signing)
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "params": {
+    "symbol": "ETH",
+    "leverage": 3,
+    "takeProfit": 0.05,
+    "stopLoss": 0.02,
+    "amountLimit": "1000 USDT",
+    "maxDrawdown": 0.1,
+    "freq": "1h",
+    "riskLevel": "medium"
+  },
+  "symbol": "ETH",
+  "nonce": 0,
+  "deadline": 1234567890
+}
+```
 - **Response Example**:
 ```json
 {
   "success": true,
   "data": {
     "walletAddress": "0x...",
-    "message": "Hello World",
-    "signature": "0x...",
-    "isValid": true,
-    "recoveredAddress": "0x..."
+    "paramsHash": "0x1234567890abcdef...",
+    "symbolBytes32": "0x4554480000000000000000000000000000000000000000000000000000000000",
+    "domain": {
+      "name": "Hermora Strategy",
+      "version": "1",
+      "chainId": 31337,
+      "verifyingContract": "0x..."
+    },
+    "types": {
+      "CreateStrategy": [
+        { "name": "walletAddress", "type": "address" },
+        { "name": "paramsHash", "type": "bytes32" },
+        { "name": "symbol", "type": "bytes32" },
+        { "name": "nonce", "type": "uint256" },
+        { "name": "deadline", "type": "uint256" }
+      ]
+    },
+    "message": {
+      "walletAddress": "0x...",
+      "paramsHash": "0x1234567890abcdef...",
+      "symbol": "0x4554480000000000000000000000000000000000000000000000000000000000",
+      "nonce": 0,
+      "deadline": 1234567890
+    },
+    "signatureData": {
+      "domain": { ... },
+      "types": { ... },
+      "primaryType": "CreateStrategy",
+      "message": { ... }
+    }
   }
 }
 ```
 
+#### Register Strategy
+- **POST** `/api/strategy/register`
+- **Description**: Register new strategy (requires EIP-712 signature and backend-computed hash)
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "params": {
+    "symbol": "ETH",
+    "leverage": 3,
+    "takeProfit": 0.05,
+    "stopLoss": 0.02,
+    "amountLimit": "1000 USDT",
+    "maxDrawdown": 0.1,
+    "freq": "1h",
+    "riskLevel": "medium"
+  },
+  "symbol": "ETH",
+  "nonce": 0,
+  "deadline": 1234567890,
+  "signature": "0x...",
+  "paramsHash": "0x1234567890abcdef...", // 必需：后端计算的哈希值
+  "symbolBytes32": "0x4554480000000000000000000000000000000000000000000000000000000000" // 可选：后端计算的符号字节
+}
+```
+- **Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "strategyId": 1,
+    "paramsHash": "0x1234567890abcdef...",
+    "transactionHash": "0xabcdef1234567890...",
+    "metadataURI": "ipfs://strategies/0x1234567890abcdef..."
+  }
+}
+```
 
+#### Update Strategy
+- **PUT** `/api/strategy/:strategyId`
+- **Path Parameters**:
+  - `strategyId`: Strategy ID
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "params": {
+    "symbol": "ETH",
+    "leverage": 5,
+    "takeProfit": 0.08,
+    "stopLoss": 0.03,
+    "amountLimit": "2000 USDT",
+    "maxDrawdown": 0.15,
+    "freq": "4h",
+    "riskLevel": "high"
+  },
+  "nonce": 1,
+  "deadline": 1234567890,
+  "signature": "0x...",
+  "paramsHash": "0x1234567890abcdef..." // 必需：后端计算的哈希值
+}
+```
+- **Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "strategyId": 1,
+    "newParamsHash": "0x1234567890abcdef...",
+    "transactionHash": "0xabcdef1234567890...",
+    "metadataURI": "ipfs://strategies/0x1234567890abcdef..."
+  }
+}
+```
 
-## Frontend Integration Guide
+#### Set Strategy Active Status
+- **PUT** `/api/strategy/:strategyId/active`
+- **Path Parameters**:
+  - `strategyId`: Strategy ID
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "active": false,
+  "nonce": 2,
+  "deadline": 1234567890,
+  "signature": "0x..."
+}
+```
 
-### Signature Flow
+#### Delete Strategy
+- **DELETE** `/api/strategy/:strategyId`
+- **Path Parameters**:
+  - `strategyId`: Strategy ID
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "nonce": 3,
+  "deadline": 1234567890,
+  "signature": "0x..."
+}
+```
 
-1. **Get Nonce**: Call `/api/vault/nonce?walletAddress=0x...` to get current nonce
-2. **Get Domain Separator**: Call `/api/vault/domain-separator` to get EIP-712 domain separator
-3. **Construct Message**: Create EIP-712 typed data structure
-4. **Sign Message**: Use wallet to sign the message
-5. **Submit Transaction**: Call the appropriate API with signature
+#### Get User Nonce
+- **GET** `/api/strategy/nonce/:walletAddress`
+- **Path Parameters**:
+  - `walletAddress`: Wallet address
+- **Response**: Current nonce for strategy operations
 
-### Example Frontend Code
+#### Get Domain Separator
+- **GET** `/api/strategy/domain-separator`
+- **Response**: EIP-712 domain separator for strategy operations
 
+#### Verify Signature
+- **POST** `/api/strategy/verify-signature`
+- **Description**: Verify strategy EIP-712 signature
+- **Request Body**:
+```json
+{
+  "walletAddress": "0x...",
+  "params": {
+    "symbol": "ETH",
+    "leverage": 3
+  },
+  "symbol": "ETH",
+  "nonce": 0,
+  "deadline": 1234567890,
+  "signature": "0x..."
+}
+```
+
+## EIP-712 Signature Verification
+
+### Vault Domain
+```typescript
+const domain = {
+  name: 'Hermora Vault',
+  version: '1',
+  chainId: 31337,
+  verifyingContract: VAULT_ADDRESS
+};
+```
+
+### Strategy Domain
+```typescript
+const domain = {
+  name: 'Hermora Strategy',
+  version: '1',
+  chainId: 31337,
+  verifyingContract: STRATEGY_REGISTRY_ADDRESS
+};
+```
+
+### Signature Types
+
+#### Vault Operations
+```typescript
+const types = {
+  CreatePool: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'initialAmount', type: 'uint256' },
+    { name: 'tokenAddress', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  DeletePool: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'poolId', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  Deposit: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'poolId', type: 'uint256' },
+    { name: 'amount', type: 'uint256' },
+    { name: 'tokenAddress', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  Withdraw: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'poolId', type: 'uint256' },
+    { name: 'amount', type: 'uint256' },
+    { name: 'tokenAddress', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ]
+};
+```
+
+#### Strategy Operations
+```typescript
+const types = {
+  CreateStrategy: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'paramsHash', type: 'bytes32' },
+    { name: 'symbol', type: 'bytes32' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  UpdateStrategy: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'strategyId', type: 'uint256' },
+    { name: 'paramsHash', type: 'bytes32' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  SetStrategyActive: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'strategyId', type: 'uint256' },
+    { name: 'active', type: 'bool' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ],
+  DeleteStrategy: [
+    { name: 'walletAddress', type: 'address' },
+    { name: 'strategyId', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' }
+  ]
+};
+```
+
+## Frontend Integration Example
+
+### Strategy Registration Flow (Recommended)
+```typescript
+import { ethers } from 'ethers';
+
+async function registerStrategy(walletAddress: string, params: StrategyParams, symbol: string) {
+  // 1. Get nonce
+  const nonceResponse = await fetch(`/api/strategy/nonce/${walletAddress}`);
+  const { data: { nonce } } = await nonceResponse.json();
+
+  // 2. Set deadline
+  const deadline = Math.floor(Date.now() / 1000) + 3600; // 1小时后过期
+
+  // 3. Get computed hash and signature data from backend
+  const hashResponse = await fetch('/api/strategy/compute-hash', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      walletAddress,
+      params,
+      symbol,
+      nonce,
+      deadline
+    })
+  });
+  
+  const { data: { paramsHash, symbolBytes32, signatureData } } = await hashResponse.json();
+
+  // 4. Sign the message using backend-provided data
+  const signature = await window.ethereum.request({
+    method: 'eth_signTypedData_v4',
+    params: [walletAddress, JSON.stringify(signatureData)]
+  });
+
+  // 5. Register strategy with backend-computed hash
+  const response = await fetch('/api/strategy/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      walletAddress,
+      params,
+      symbol,
+      nonce,
+      deadline,
+      signature,
+      paramsHash, // 必需：后端计算的哈希值
+      symbolBytes32 // 可选：后端计算的符号字节
+    })
+  });
+
+  const result = await response.json();
+  return result;
+}
+
+// 使用示例
+const strategyParams = {
+  symbol: "ETH",
+  leverage: 3,
+  takeProfit: 0.05,
+  stopLoss: 0.02,
+  amountLimit: "1000 USDT",
+  maxDrawdown: 0.1,
+  freq: "1h",
+  riskLevel: "medium"
+};
+
+const result = await registerStrategy("0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6", strategyParams, "ETH");
+```
+
+### Legacy Signature Flow (Not Recommended)
 ```typescript
 import { ethers } from 'ethers';
 
@@ -559,40 +726,18 @@ const { nonce } = await nonceResponse.json();
 const domainResponse = await fetch('/api/vault/domain-separator');
 const { domainSeparator } = await domainResponse.json();
 
-// 3. Construct EIP-712 message
-const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+// 3. Construct message
+const deadline = Math.floor(Date.now() / 1000) + 3600;
 const message = {
-  types: {
-    CreatePool: [
-      { name: 'walletAddress', type: 'address' },
-      { name: 'initialAmount', type: 'uint256' },
-      { name: 'tokenAddress', type: 'address' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' }
-    ]
-  },
-  primaryType: 'CreatePool',
-  domain: {
-    name: 'Hermora Vault',
-    version: '1',
-    chainId: chainId,
-    verifyingContract: vaultAddress
-  },
-  message: {
-    walletAddress: walletAddress,
-    initialAmount: ethers.parseEther('1.0'),
-    tokenAddress: ethers.ZeroAddress,
-    nonce: nonce,
-    deadline: deadline
-  }
+  walletAddress: walletAddress,
+  initialAmount: ethers.parseEther('1.0'),
+  tokenAddress: ethers.ZeroAddress,
+  nonce: nonce,
+  deadline: deadline
 };
 
 // 4. Sign message
-const signature = await signer._signTypedData(
-  message.domain,
-  { CreatePool: message.types.CreatePool },
-  message.message
-);
+const signature = await wallet.signTypedData(domain, types, message);
 
 // 5. Submit transaction
 const response = await fetch('/api/vault/pools', {
@@ -608,3 +753,78 @@ const response = await fetch('/api/vault/pools', {
   })
 });
 ```
+
+## Error Handling
+
+### Common Errors
+- `InvalidSignature()` - Signature verification failed
+- `InvalidNonce()` - Nonce mismatch
+- `ExpiredSignature()` - Signature expired
+- `PoolNotFound()` - Pool not found
+- `PoolNotOwned()` - Pool not owned by user
+- `MaxPoolsReached()` - Maximum pools reached
+- `InsufficientBalance()` - Insufficient balance
+- `StrategyNotFound()` - Strategy not found
+- `StrategyNotOwned()` - Strategy not owned by user
+- `Params hash mismatch` - Frontend provided hash doesn't match backend computed hash
+- `Symbol bytes mismatch` - Frontend provided symbol bytes don't match backend computed bytes
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "error": "Error description",
+  "timestamp": 1703123456789
+}
+```
+
+## Status Codes
+
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `409` - Conflict
+- `422` - Validation Error
+- `500` - Internal Server Error
+- `501` - Not Implemented
+
+## Performance Features
+
+1. **Async Initialization**: Contract instances initialize asynchronously
+2. **Timeout Protection**: Request and transaction-level timeout protection
+3. **Duplicate Request Handling**: Prevents duplicate write operations
+4. **Memory Caching**: Strategy parameters cached in memory for fast access
+5. **Async File Operations**: Non-blocking file I/O for strategy storage
+6. **Batch Processing**: Write operations batched for better performance
+7. **Backend Hash Computation**: Centralized hash computation prevents frontend-backend inconsistencies
+
+## Storage Architecture
+
+### Strategy Parameters
+- **On-chain**: Strategy metadata (ID, owner, symbol, paramsHash, status)
+- **Off-chain**: Complete strategy parameters (JSON files + memory cache)
+- **Content-addressed**: Files named by parameter hash for integrity
+- **Dual backup**: Main storage + backup storage directories
+- **IPFS ready**: Prepared for future web3.storage integration
+- **Hash Consistency**: Backend-computed hashes ensure frontend-backend consistency
+
+## Important Notes
+
+### Strategy Registration Workflow
+The strategy registration process has been updated to prevent frontend-backend hash computation inconsistencies:
+
+1. **Frontend calls** `/api/strategy/compute-hash` to get backend-computed hash
+2. **Frontend signs** using the backend-provided hash and signature data
+3. **Frontend submits** registration with the backend-computed hash
+4. **Backend verifies** hash consistency before processing
+
+This approach ensures:
+- ✅ Consistent hash computation across all clients
+- ✅ Reduced frontend complexity
+- ✅ Better error handling and debugging
+- ✅ Enhanced security through hash verification
+
+For detailed implementation, see `doc/STRATEGY_REGISTRATION.md`
